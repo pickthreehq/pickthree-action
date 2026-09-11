@@ -113,7 +113,12 @@ runs:
         PT_IMAGE: ${{ inputs.image }}
       run: |
         set -euo pipefail
-        registry="${PT_IMAGE%%/*}"
+        # A bare name ("pickthree:1.0.0") is a local or Docker-Hub-library image with no registry
+        # host to sign in to — `docker login pickthree` would fail on DNS. Skip instead.
+        case "$PT_IMAGE" in
+          */*) registry="${PT_IMAGE%%/*}" ;;
+          *) echo "::notice title=Pickthree::'$PT_IMAGE' names no registry — skipping docker login"; exit 0 ;;
+        esac
         printf '%s' "$PT_REGISTRY_TOKEN" | docker login "$registry" --username "$PT_REGISTRY_USERNAME" --password-stdin
 
     - name: Review
@@ -142,12 +147,11 @@ runs:
         chmod 666 "$work/event.json" "$work/output"
 
         args=(--rm
-          --env GITHUB_REPOSITORY --env GITHUB_EVENT_NAME --env GITHUB_SERVER_URL --env GITHUB_API_URL
+          --env GITHUB_REPOSITORY --env GITHUB_EVENT_NAME --env GITHUB_SERVER_URL
           --env GITHUB_EVENT_PATH=/pickthree/event.json --env GITHUB_OUTPUT=/pickthree/output
           --env INPUT_GITHUB_TOKEN --env INPUT_DRY_RUN --env INPUT_FORCE --env INPUT_PR
           --env PICKTHREE_STATE= --env PICKTHREE_DATA_DIR=
           --volume "$work:/pickthree")
-        if [ -n "$PICKTHREE_LICENSE" ]; then args+=(--env PICKTHREE_LICENSE); fi
         if [ -n "$INPUT_CONFIG" ]; then
           args+=(--env "INPUT_CONFIG=/workspace/$INPUT_CONFIG" --volume "${GITHUB_WORKSPACE}:/workspace:ro")
         fi
