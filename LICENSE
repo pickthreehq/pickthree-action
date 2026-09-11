@@ -1,0 +1,29 @@
+# Pickthree licence
+
+Pickthree is proprietary, closed-source software, © Solonex. It is not open source, and nothing in
+this repository grants any licence to its source code.
+
+This repository holds only the GitHub Action wrapper: metadata that runs the published Pickthree
+container image. You may copy, modify and redistribute the contents of *this repository* freely as
+part of using or self-hosting Pickthree.
+
+The software the wrapper runs is licensed, not sold.
+
+**You may** download, install and run the published binaries (the container image, the npm package,
+this Action) on infrastructure you control, to review repositories you have access to, within the
+limits of your tier — free for public repositories and for private repositories with up to 3
+distinct developers per month; larger private use requires a licence file issued by Solonex. All
+features are available on every tier; licensing is by size, not by feature.
+
+**You may not** redistribute, sublicense, sell, or offer the software as a hosted service to third
+parties; reverse-engineer, modify or remove the licence verification; or circumvent the developer
+count.
+
+**No warranty.** The software is provided "as is", without warranty of any kind. Solonex is not
+liable for any damages arising from its use. Pickthree sends your code diffs to the LLM provider you
+configure with your own credentials; that provider's terms apply to those requests.
+
+Nothing in the software reports usage to Solonex: there is no telemetry and no licence server.
+Licences are verified offline.
+
+Full terms: https://pickthree.dev/terms
