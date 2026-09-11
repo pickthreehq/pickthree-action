@@ -1,11 +1,11 @@
 # Pickthree — GitHub Action
 
-**Good, fast, cheap — pick three.** Quiet AI code review on your own infrastructure and your own API keys: a walkthrough and at most 10 inline comments per pull request, or silence.
+**Good, fast, cheap — pick three.** Quiet AI code review that runs in your own CI with your own API keys: a walkthrough and at most 10 inline comments per pull request, or silence.
 
-Pickthree runs on *your* infrastructure with *your* LLM API keys, and never phones home: no
-telemetry, no license server, nothing about your code reaches us. Free for public repositories and
-for private repositories with up to 3 developers a month; paid tiers are flat per organisation from
-\$49/month, with every feature on every tier. https://pickthree.dev
+Pickthree reviews your pull requests inside *your own* GitHub Actions runner, with *your own* LLM
+API keys, and never phones home: no telemetry, no licence server, nothing about your code reaches
+us. Free for public repositories and for private repositories with up to 3 developers a month;
+paid tiers are flat per organisation from \$49/month, with every feature on every tier. https://pickthree.dev
 
 ## Install
 
@@ -68,10 +68,10 @@ only *parses* the changed files, which is what makes `pull_request_target` safe 
 | `force` | `false` | Re-review an already-reviewed head, and the whole pull request |
 | `pr` | — | Pull request number, for `workflow_dispatch` |
 | `license` | — | License token for the paid tiers (pass it from a secret) |
-| `image` | `ghcr.io/pickthreehq/pickthree` | Image repository — change it only for your own mirror |
+| `image` | `ghcr.io/pickthreehq/pickthree` | Image repository — change it only for a registry mirror we have granted you |
 | `version` | `0.1.0` | Image tag |
 | `digest` | — | Pin by digest; wins over `version` |
-| `registry-token` | `${{ github.token }}` | Credential for `docker login`; empty string for an anonymous pull |
+| `registry-token` | `${{ github.token }}` | Credential for `docker login` — see *Access to the image* below |
 | `registry-username` | `${{ github.actor }}` | Username for `docker login` |
 
 Provider credentials and every other deployment variable come from the **job environment** (the
@@ -89,15 +89,29 @@ comments: https://pickthree.dev/docs/config
 
 ## Minimum permissions
 
-`contents: read`, `pull-requests: write`, `issues: write`. A read-only install that reports findings
-as check runs instead of comments needs a GitHub App and server mode: https://pickthree.dev/docs/install
+`contents: read`, `pull-requests: write`, `issues: write`. That is all the workflow token needs.
+
+## Access to the image
+
+Pickthree is proprietary software and the container image this action runs is **private**: it is
+never publicly pullable. Access is granted per customer as a **read-only registry token**, issued
+together with your licence — pass it as `registry-token` from a repository secret:
+
+```yaml
+      - uses: pickthreehq/pickthree-action@v1
+        with:
+          registry-token: ${{ secrets.PICKTHREE_REGISTRY_TOKEN }}
+          license: ${{ secrets.PICKTHREE_LICENSE }}
+```
+
+Without access the run stops before any code is read, with a message that says so. To get a token,
+or to have your organisation's repositories granted access: **https://pickthree.dev/contact**
 
 ## What is in this repository
 
 Only the wrapper: `action.yml`, this README, the licence and one selftest workflow. Pickthree
-itself is **proprietary, closed-source** software, shipped as the signed container image this action
-runs (`ghcr.io/pickthreehq/pickthree`) with an SBOM, build provenance and a keyless cosign signature you can
-verify. Not a line of the reviewer lives here. Running that same image as a webhook server, on
-Kubernetes, or in another CI system: https://pickthree.dev/docs/install
+itself is **proprietary, closed-source** software, shipped as a signed container image with an
+SBOM and build provenance. Not a line of the reviewer lives here.
 
-Issues and questions: https://github.com/pickthreehq/pickthree-action/issues
+Questions, or anything you need beyond the Action: **https://pickthree.dev/contact** ·
+issues on the wrapper: https://github.com/pickthreehq/pickthree-action/issues

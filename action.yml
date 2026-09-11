@@ -2,7 +2,7 @@
 # This repository is the public Marketplace wrapper and contains no Pickthree source code:
 # it runs the published, closed container image. Reviewer, prompts and pipeline live in that image.
 name: "Pickthree code review"
-description: "Quiet AI code review on your own infrastructure and your own API keys: a walkthrough and at most 10 inline comments per pull request, or silence."
+description: "Quiet AI code review that runs in your own CI with your own API keys: a walkthrough and at most 10 inline comments per pull request, or silence."
 author: "Pickthree"
 branding:
   icon: "check-circle"
@@ -34,7 +34,7 @@ inputs:
     required: false
     default: ""
   image:
-    description: "Image repository to run. Change it only to point at your own mirror (air-gapped installs)."
+    description: "Image repository to run. Change it only to point at a registry mirror we have granted you."
     required: false
     default: "ghcr.io/pickthreehq/pickthree"
   version:
@@ -46,7 +46,7 @@ inputs:
     required: false
     default: ""
   registry-token:
-    description: "Credential for `docker login` against the image registry. The workflow token works for any image your repository may pull; set it to an empty string for an anonymous pull."
+    description: "Credential for `docker login`. The Pickthree image is private: pass the read-only registry token issued with your license, or the workflow token if your repository has been granted access. Get one at https://pickthree.dev/contact."
     required: false
     default: ${{ github.token }}
   registry-username:
@@ -160,6 +160,17 @@ runs:
         for v in GITHUB_API_URL DATABASE_URL ANTHROPIC_API_KEY ANTHROPIC_BASE_URL OPENAI_API_KEY OPENAI_BASE_URL GOOGLE_GENERATIVE_AI_API_KEY GEMINI_API_KEY AWS_REGION AWS_DEFAULT_REGION AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY AWS_SESSION_TOKEN AWS_BEARER_TOKEN_BEDROCK GOOGLE_VERTEX_PROJECT GOOGLE_VERTEX_LOCATION OPENROUTER_API_KEY OPENAI_COMPATIBLE_BASE_URL OPENAI_COMPATIBLE_API_KEY CLAUDE_CODE_OAUTH_TOKEN PICKTHREE_SUBSCRIPTION_MAX_WAIT PICKTHREE_CLAUDE_SESSIONS PICKTHREE_CLAUDE_STRUCTURED PICKTHREE_CONFIG_YAML PICKTHREE_PROFILE PICKTHREE_QUALITY PICKTHREE_PROVIDER MODEL_FAST MODEL_REVIEW MODEL_JUDGE PICKTHREE_ORG_CONFIG_REPO PICKTHREE_LOG_LEVEL PICKTHREE_LOG_FORMAT PICKTHREE_LICENSE LINEAR_API_KEY JIRA_API_TOKEN JIRA_EMAIL; do
           if [ -n "${!v:-}" ]; then args+=(--env "$v"); fi
         done
+
+        # The Pickthree image is private by design: access is granted per customer with a
+        # read-only registry token, never by making the package public. Say so when the pull fails,
+        # instead of leaving a bare `manifest unknown` in the log.
+        if ! docker image inspect "$PT_IMAGE_REF" > /dev/null 2>&1; then
+          if ! docker pull "$PT_IMAGE_REF"; then
+            echo "::error title=Pickthree: no access to the image::Could not pull $PT_IMAGE_REF. The Pickthree image is private — pass 'registry-token' with the read-only registry token issued with your licence. To get one, or to have this repository granted access: https://pickthree.dev/contact"
+            rm -rf "$work"
+            exit 1
+          fi
+        fi
 
         status=0
         docker run "${args[@]}" "$PT_IMAGE_REF" action || status=$?

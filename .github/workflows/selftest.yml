@@ -50,11 +50,14 @@ jobs:
           fi
           [ "$fail" = 0 ] && echo "guards ok"
           exit $fail
-      - name: the pinned image reference
+      - name: the image must stay private
         run: |
-          docker manifest inspect ghcr.io/pickthreehq/pickthree:0.1.0 > /dev/null 2>&1 \
-            && echo "ghcr.io/pickthreehq/pickthree:0.1.0 is anonymously pullable" \
-            || echo "::warning::ghcr.io/pickthreehq/pickthree:0.1.0 is not anonymously pullable yet — consumers must pass a registry-token that can read it"
+          # Access is granted per customer with a read-only registry token, never by making the
+          # package public. An anonymous pull that succeeds is a misconfiguration, not good news.
+          if docker manifest inspect ghcr.io/pickthreehq/pickthree:0.1.0 > /dev/null 2>&1; then
+            echo "::error::ghcr.io/pickthreehq/pickthree:0.1.0 is anonymously pullable — the image must be private"; exit 1
+          fi
+          echo "ghcr.io/pickthreehq/pickthree:0.1.0 is not anonymously pullable, as intended"
 
   invoke:
     name: live dry-run review
